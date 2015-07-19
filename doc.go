@@ -18,6 +18,7 @@ If you need a more control, give &cors.Options{} instead of nil.
 
 	import (
 		"fmt"
+		"time"
 
 		"github.com/volatile/core"
 		"github.com/volatile/cors"
