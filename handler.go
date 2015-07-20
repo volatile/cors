@@ -3,6 +3,7 @@ package cors
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,67 +38,89 @@ type Options struct {
 	MaxAge time.Duration
 }
 
+type formattedOptions struct {
+	AllowedHeaders     string
+	AllowedMethods     string
+	AllowedOrigins     string
+	CredentialsAllowed string
+	ExposedHeaders     string
+	MaxAge             string
+}
+
 // Use tells the core to use this handler with the provided options.
 func Use(options *Options) {
-	if options == nil {
-		options = new(Options)
-	}
-
-	// First, format all the potential data to not do that on each request.
-
-	headerAllowHeadersValue := strings.Join(options.AllowedHeaders, ", ")
-
-	headerAllowMethodsValue := strings.Join(options.AllowedMethods, ", ")
-
-	var headerAllowOriginValue string
-	// If no allowed origins set, all origins are allowed.
-	if options.AllowedOrigins == nil {
-		headerAllowOriginValue = "*"
-	} else {
-		headerAllowOriginValue = strings.Join(options.AllowedOrigins, ", ")
-	}
-
-	headerExposeHeadersValue := strings.Join(options.ExposedHeaders, ", ")
-
-	headerMaxAgeValue := fmt.Sprintf("%.f", options.MaxAge.Seconds())
-
-	// Finally, add handler to stack.
-
+	fmtOpt := formatCORS(options)
 	core.Use(func(c *core.Context) {
-		c.ResponseWriter.Header().Set(headerAllowOrigin, headerAllowOriginValue)
-
-		if options.CredentialsAllowed {
-			c.ResponseWriter.Header().Set(headerAllowCredentials, "true")
-		}
-
-		if headerExposeHeadersValue != "" {
-			c.ResponseWriter.Header().Set(headerExposeHeaders, headerExposeHeadersValue)
-		}
-
-		if options.MaxAge != 0 {
-			c.ResponseWriter.Header().Set(headerMaxAge, headerMaxAgeValue)
-		}
-
-		// OPTIONS is used for preflight requests.
-		// For that, only the CORS handler must respond, so the handlers chain is broken.
-		if c.Request.Method == "OPTIONS" {
-			// If no allowed headers are set, accept all from the real request.
-			if headerAllowHeadersValue == "" {
-				c.ResponseWriter.Header().Set(headerAllowHeaders, c.Request.Header.Get(headerRequestHeaders))
-			} else {
-				c.ResponseWriter.Header().Set(headerAllowHeaders, headerAllowHeadersValue)
-			}
-
-			// If no allowed methods are set, accept the method of the real request.
-			if headerAllowMethodsValue == "" {
-				c.ResponseWriter.Header().Set(headerAllowMethods, c.Request.Header.Get(headerRequestMethod))
-			} else {
-				c.ResponseWriter.Header().Set(headerAllowMethods, headerAllowMethodsValue)
-			}
-
-			c.ResponseWriter.WriteHeader(http.StatusOK)
-		} else {
+		setCORS(c, fmtOpt, func() {
 			c.Next()
-		}
+		})
 	})
+}
+
+// LocalUse allows to set CORS locally, for a single handler.
+// Remember you can't set headers after Write or WriteHeader has been called.
+func LocalUse(c *core.Context, options *Options, handler func()) {
+	setCORS(c, formatCORS(options), handler)
+}
+
+func formatCORS(opt *Options) *formattedOptions {
+	if opt == nil {
+		opt = new(Options)
+	}
+
+	fmtOpt := &formattedOptions{
+		AllowedHeaders:     strings.Join(opt.AllowedHeaders, ", "),
+		AllowedMethods:     strings.Join(opt.AllowedMethods, ", "),
+		CredentialsAllowed: strconv.FormatBool(opt.CredentialsAllowed),
+		ExposedHeaders:     strings.Join(opt.ExposedHeaders, ", "),
+		MaxAge:             fmt.Sprintf("%.f", opt.MaxAge.Seconds()),
+	}
+
+	// If no allowed origins set, all origins are allowed.
+	if opt.AllowedOrigins == nil {
+		fmtOpt.AllowedOrigins = "*"
+	} else {
+		fmtOpt.AllowedOrigins = strings.Join(opt.AllowedOrigins, ", ")
+	}
+
+	return fmtOpt
+}
+
+// setCORS set the response headers and continue if it's not a preflight request.
+func setCORS(c *core.Context, fmtOpt *formattedOptions, handler func()) {
+	c.ResponseWriter.Header().Set(headerAllowOrigin, fmtOpt.AllowedOrigins)
+
+	if fmtOpt.CredentialsAllowed == "true" {
+		c.ResponseWriter.Header().Set(headerAllowCredentials, fmtOpt.CredentialsAllowed)
+	}
+
+	if fmtOpt.ExposedHeaders != "" {
+		c.ResponseWriter.Header().Set(headerExposeHeaders, fmtOpt.ExposedHeaders)
+	}
+
+	if fmtOpt.MaxAge != "0" {
+		c.ResponseWriter.Header().Set(headerMaxAge, fmtOpt.MaxAge)
+	}
+
+	// OPTIONS is used for preflight requests.
+	// For that, only the CORS handler must respond, so the handlers chain is broken.
+	if c.Request.Method == "OPTIONS" {
+		// If no allowed headers are set, accept all from the real request.
+		if fmtOpt.AllowedHeaders == "" {
+			c.ResponseWriter.Header().Set(headerAllowHeaders, c.Request.Header.Get(headerRequestHeaders))
+		} else {
+			c.ResponseWriter.Header().Set(headerAllowHeaders, fmtOpt.AllowedHeaders)
+		}
+
+		// If no allowed methods are set, accept the method of the real request.
+		if fmtOpt.AllowedMethods == "" {
+			c.ResponseWriter.Header().Set(headerAllowMethods, c.Request.Header.Get(headerRequestMethod))
+		} else {
+			c.ResponseWriter.Header().Set(headerAllowMethods, fmtOpt.AllowedMethods)
+		}
+
+		c.ResponseWriter.WriteHeader(http.StatusOK)
+	} else {
+		handler()
+	}
 }
