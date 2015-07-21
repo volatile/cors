@@ -48,8 +48,7 @@ func main() {
 
 ### Local
 
-`cors.LocalUse(*core.Context, *cors.Options, func())` allows to set CORS locally, for a single handler.  
- The global CORS options are overwritten in this situation.
+`cors.LocalUse(*core.Context, *cors.Options, func())` allows to set CORS locally, for a single handler. The global CORS options are overwritten in this situation.
 
 The last `func()` parameter is called after the CORS headers are set, but only if it's not a [preflight request](http://www.w3.org/TR/cors/#resource-preflight-requests).
 
