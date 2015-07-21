@@ -18,8 +18,8 @@ $ go get -u github.com/volatile/cors
 
 ## Usage
 
-If you give `nil` as the `*cors.Options` parameter, the default configuration is used so it allows all headers, methods and origins.  
-If you need a more control, give a custom options with `&cors.Options{}` instead.
+If you give `nil` as the `*cors.Options` parameter, the default configuration is used and it allows all headers, methods and origins.  
+If you need a more control, give custom options with `&cors.Options{}` instead.
 
 ### Global
 
