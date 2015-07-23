@@ -89,6 +89,9 @@ func formatCORS(opt *Options) *formattedOptions {
 // setCORS set the response headers and continue if it's not a preflight request.
 func setCORS(c *core.Context, fmtOpt *formattedOptions, handler func()) {
 	c.ResponseWriter.Header().Set(headerAllowOrigin, fmtOpt.AllowedOrigins)
+	if fmtOpt.AllowedOrigins != "*" {
+		c.ResponseWriter.Header().Set("Vary", "Origin")
+	}
 
 	if fmtOpt.CredentialsAllowed == "true" {
 		c.ResponseWriter.Header().Set(headerAllowCredentials, fmtOpt.CredentialsAllowed)
