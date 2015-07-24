@@ -24,18 +24,12 @@ const (
 
 // Options represents access control options.
 type Options struct {
-	// AllowedHeaders indicates, in the case of a preflight request, which headers can be used during the actual request.
-	AllowedHeaders []string
-	// AllowedMethods indicates, in the case of a preflight request, which methods can be used during the actual request.
-	AllowedMethods []string
-	// AllowedOrigins indicates which origins can make a request.
-	AllowedOrigins []string
-	// CredentialsAllowed indicates whether the request can include user credentials like cookies, HTTP authentication or client side SSL certificates.
-	CredentialsAllowed bool
-	// ExposedHeaders whitelists headers that browsers are allowed to access.
-	ExposedHeaders []string
-	// MaxAge indicates how long the results of a preflight request can be cached.
-	MaxAge time.Duration
+	AllowedHeaders     []string      // AllowedHeaders indicates, in the case of a preflight request, which headers can be used during the actual request.
+	AllowedMethods     []string      // AllowedMethods indicates, in the case of a preflight request, which methods can be used during the actual request.
+	AllowedOrigins     []string      // AllowedOrigins indicates which origins can make a request.
+	CredentialsAllowed bool          // CredentialsAllowed indicates whether the request can include user credentials like cookies, HTTP authentication or client side SSL certificates.
+	ExposedHeaders     []string      // ExposedHeaders whitelists headers that browsers are allowed to access.
+	MaxAge             time.Duration // MaxAge indicates how long the results of a preflight request can be cached.
 }
 
 type formattedOptions struct {
