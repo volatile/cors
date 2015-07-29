@@ -11,12 +11,13 @@ Documentation about CORS:
 
 Usage
 
-If you give nil as the *cors.Options parameter, the default configuration is used so it allows all headers, methods and origins.
-If you need a more control, give a custom options with &cors.Options{} instead.
+When using CORS (globally or locally), there is always a parameter of type "*cors.Options".
+If you set "nil" for this parameter, the default configuration is used: it allows all headers, methods and origins.
+If you need a more control, give custom options with "&cors.Options{}".
 
 Global usage
 
-cors.Use(*Options) sets a global CORS configuration for all the handlers.
+cors.Use(*cors.Options) sets a global CORS configuration for all the handlers.
 
 	package main
 
@@ -39,7 +40,8 @@ cors.Use(*Options) sets a global CORS configuration for all the handlers.
 
 Local usage
 
-cors.LocalUse(*core.Context, *cors.Options, func()) allows to set CORS locally, for a single handler. The global CORS options are overwritten in this situation.
+cors.LocalUse(*core.Context, *cors.Options, func()) allows to set CORS locally, for a single handler.
+The global CORS options are overwritten in this situation.
 
 The last func() parameter is called after the CORS headers are set, but only if it's not a [preflight request](http://www.w3.org/TR/cors/#resource-preflight-requests).
 
