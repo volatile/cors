@@ -53,36 +53,33 @@ The last func() parameter is called after the CORS headers are set, but only if 
 
 		"github.com/volatile/core"
 		"github.com/volatile/cors"
+		"github.com/volatile/response"
+		"github.com/volatile/route"
 	)
 
 	func main() {
 		// Global use
 		cors.Use(nil)
 
-		core.Use(func(c *core.Context) {
-			// Custom CORS are set only for the "/localcors" path.
-			if c.Request.URL.String() == "/localcors" {
-				opt := &cors.Options{
-					AllowedHeaders:     []string{"X-Client-Header-Example", "X-Another-Client-Header-Example"},
-					AllowedMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-					AllowedOrigins:     []string{"http://example.com", "http://example.com"},
-					CredentialsAllowed: true,
-					ExposedHeaders:     []string{"X-Header-Example", "X-Another-Header-Example"},
-					MaxAge:             365 * 24 * time.Hour,
-				}
-
-				// Local use
-				cors.LocalUse(c, opt, func() {
-					fmt.Fprint(c.ResponseWriter, "Hello, World!")
-				})
+		// Local use for the "/hook" path.
+		route.Get("^/hook$", func(c *core.Context) {
+			opt := &cors.Options{
+				AllowedHeaders:     []string{"X-Client-Header-Example", "X-Another-Client-Header-Example"},
+				AllowedMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
+				AllowedOrigins:     []string{"http://example.com", "http://example.com"},
+				CredentialsAllowed: true,
+				ExposedHeaders:     []string{"X-Header-Example", "X-Another-Header-Example"},
+				MaxAge:             365 * 24 * time.Hour,
 			}
 
-			c.Next()
+			cors.LocalUse(c, opt, func() {
+				response.Status(c, http.StatusOK)
+			})
 		})
 
+		// No local CORS are set: global CORS options are used.
 		core.Use(func(c *core.Context) {
-			// No local CORS are set. Then, obviously, global CORS are used.
-			fmt.Fprint(c.ResponseWriter, "Hello, World!")
+			response.String(c, "Hello, World!")
 		})
 
 		core.Run()
