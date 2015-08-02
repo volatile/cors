@@ -11,6 +11,10 @@ import (
 )
 
 const (
+	// AllOrigins contains the wildcard symbol.
+	AllOrigins = "*"
+
+	// Response headers
 	headerAllowCredentials = "Access-Control-Allow-Credentials"
 	headerAllowHeaders     = "Access-Control-Allow-Headers"
 	headerAllowMethods     = "Access-Control-Allow-Methods"
@@ -18,44 +22,29 @@ const (
 	headerExposeHeaders    = "Access-Control-Expose-Headers"
 	headerMaxAge           = "Access-Control-Max-Age"
 
+	// Request headers
 	headerRequestHeaders = "Access-Control-Request-Headers"
 	headerRequestMethod  = "Access-Control-Request-Method"
 )
 
 // Options represents access control options for an origin.
 type Options struct {
-	// AllowedHeaders indicates, in the case of a preflight request,
-	// which headers can be used during the actual request.
-	AllowedHeaders []string
-
-	// AllowedMethods indicates, in the case of a preflight request,
-	// which methods can be used during the actual request.
-	//
-	// If len(ExposedHeaders) == 0, all methods will be allowed.
-	AllowedMethods []string
-
-	// CredentialsAllowed indicates whether the request can include user
-	// credentials like cookies, HTTP authentication or client side SSL certificates.
-	CredentialsAllowed bool
-
-	// ExposedHeaders whitelists headers that browsers are allowed to access.
-	//
-	// If len(ExposedHeaders) == 0, all headers on preflight requests will be exposed.
-	ExposedHeaders []string
-
-	// MaxAge indicates how long the results of a preflight request can be cached.
-	MaxAge time.Duration
+	AllowedHeaders     []string      // AllowedHeaders indicates, in the case of a preflight request, which headers can be used during the actual request. If none are set, all are allowed.
+	AllowedMethods     []string      // AllowedMethods indicates, in the case of a preflight request, which methods can be used during the actual request. If none are set, all are allowed.
+	CredentialsAllowed bool          // CredentialsAllowed indicates whether the request can include user credentials like cookies, HTTP authentication or client side SSL certificates.
+	ExposedHeaders     []string      // ExposedHeaders whitelists headers that browsers are allowed to access.
+	MaxAge             time.Duration // MaxAge indicates how long the results of a preflight request can be cached.
 }
 
 type formattedOptions struct {
-	AllowedHeaders,
-	AllowedMethods,
-	CredentialsAllowed,
-	ExposedHeaders,
-	MaxAge *string
+	AllowedHeaders     *string
+	AllowedMethods     *string
+	CredentialsAllowed *string
+	ExposedHeaders     *string
+	MaxAge             *string
 }
 
-// Use tells the core to use this handler with the provided options.
+// Use adds a handler that sets CORS with the provided options for all dowstream requests.
 func Use(options map[string]Options) {
 	fmtOpt := formatCORS(options)
 	core.Use(func(c *core.Context) {
@@ -63,17 +52,16 @@ func Use(options map[string]Options) {
 	})
 }
 
-// LocalUse allows to set CORS locally, for a single handler.
-// Remember you can't set headers after Write or WriteHeader has been called.
+// LocalUse sets CORS with the provided options locally, for a single handler.
+// The global options (if used) are overwritten in this situation.
 func LocalUse(c *core.Context, options map[string]Options, handler func()) {
 	setCORS(c, formatCORS(options), handler)
 }
 
 func formatCORS(opt map[string]Options) (fmtOpt map[string]formattedOptions) {
-	// For requests without credentials, the server may specify "*" as a wildcard,
-	// thereby allowing any origin to access the resource.
-	if wild, ok := opt["*"]; ok && wild.CredentialsAllowed {
-		panic("sending credentials via CORS is not permitted for wildcarded origins")
+	// TODO: Remove this check as there is no other solution to accept credentials for all origins.
+	if opt, ok := opt[AllOrigins]; ok && opt.CredentialsAllowed {
+		panic("cors: sending credentials via CORS is not permitted for wildcarded origins")
 	}
 
 	fmtOpt = make(map[string]formattedOptions, len(opt))
@@ -102,70 +90,66 @@ func formatCORS(opt map[string]Options) (fmtOpt map[string]formattedOptions) {
 	return
 }
 
-// setCORS set the response headers and continue if it's not a preflight request.
+// setCORS sets the response headers and continues downstream if it's not a preflight request.
 func setCORS(c *core.Context, fmtOpts map[string]formattedOptions, handler func()) {
 	origin := c.Request.Header.Get("Origin")
 
-	// Request does not have an Origin header, therefore it is no CORS request
-	// and control is passed to the handler.
-	if origin == "" {
-		handler()
-		return
+	// Use CORS only if an Origin header is defined for the request.
+	if origin != "" {
+		fmtOpt, ok := fmtOpts[origin]
+		wildcard := false
+
+		// Unknown origin: check for wildcard.
+		if !ok {
+			fmtOpt, wildcard = fmtOpts[AllOrigins]
+		}
+
+		// No origin matched and wildcard not accepted: reject the request.
+		if !ok && !wildcard {
+			http.Error(c.ResponseWriter, "Invalid CORS request", http.StatusForbidden)
+			return
+		}
+
+		c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
+
+		if wildcard {
+			c.ResponseWriter.Header().Set("Vary", "Origin")
+		}
+
+		// Set credentials header only if they are allowed.
+		if fmtOpt.CredentialsAllowed != nil && *fmtOpt.CredentialsAllowed == "true" {
+			c.ResponseWriter.Header().Set(headerAllowCredentials, *fmtOpt.CredentialsAllowed)
+		}
+
+		if fmtOpt.ExposedHeaders != nil {
+			c.ResponseWriter.Header().Set(headerExposeHeaders, *fmtOpt.ExposedHeaders)
+		}
+
+		if fmtOpt.MaxAge != nil {
+			c.ResponseWriter.Header().Set(headerMaxAge, *fmtOpt.MaxAge)
+		}
+
+		// OPTIONS method is used for a preflight request.
+		// In this case, other CORS headers still need to be set before sending all of them, without any other work.
+		if c.Request.Method == "OPTIONS" {
+			// If no allowed headers are set, all are allowed.
+			if fmtOpt.AllowedHeaders == nil {
+				c.ResponseWriter.Header().Set(headerAllowHeaders, c.Request.Header.Get(headerRequestHeaders))
+			} else {
+				c.ResponseWriter.Header().Set(headerAllowHeaders, *fmtOpt.AllowedHeaders)
+			}
+
+			// If no allowed methods are set, all are allowed.
+			if fmtOpt.AllowedMethods == nil {
+				c.ResponseWriter.Header().Set(headerAllowMethods, c.Request.Header.Get(headerRequestMethod))
+			} else {
+				c.ResponseWriter.Header().Set(headerAllowMethods, *fmtOpt.AllowedMethods)
+			}
+
+			c.ResponseWriter.WriteHeader(http.StatusOK)
+			return
+		}
 	}
 
-	fmtOpt, ok := fmtOpts[origin]
-	wildcard = false
-
-	// Source origin is not known by name, so check for wildcard.
-	if !ok {
-		fmtOpt, wildcard = fmtOpts["*"]
-	}
-
-	// No origin matched and wildcard not accepted, reject the request.
-	if !ok && !wildcard {
-		http.Error(c.ResponseWriter, "Invalid CORS request", http.StatusForbidden)
-		return
-	}
-
-	c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
-
-	if wildcard {
-		c.ResponseWriter.Header().Set("Vary", "Origin")
-	}
-
-	if fmtOpt.CredentialsAllowed != nil {
-		c.ResponseWriter.Header().Set(headerAllowCredentials, *fmtOpt.CredentialsAllowed)
-	}
-
-	if fmtOpt.ExposedHeaders != nil {
-		c.ResponseWriter.Header().Set(headerExposeHeaders, *fmtOpt.ExposedHeaders)
-	}
-
-	if fmtOpt.MaxAge != nil {
-		c.ResponseWriter.Header().Set(headerMaxAge, *fmtOpt.MaxAge)
-	}
-
-	if c.Request.Method != "OPTIONS" {
-		handler()
-		return
-	}
-
-	// OPTIONS is used for preflight requests.
-	// For that, only the CORS handler must respond, so the handlers chain is broken.
-
-	// If no allowed headers are set, accept all from the real request.
-	if fmtOpt.AllowedHeaders == nil {
-		c.ResponseWriter.Header().Set(headerAllowHeaders, c.Request.Header.Get(headerRequestHeaders))
-	} else {
-		c.ResponseWriter.Header().Set(headerAllowHeaders, *fmtOpt.AllowedHeaders)
-	}
-
-	// If no allowed methods are set, accept the method of the real request.
-	if fmtOpt.AllowedMethods == nil {
-		c.ResponseWriter.Header().Set(headerAllowMethods, c.Request.Header.Get(headerRequestMethod))
-	} else {
-		c.ResponseWriter.Header().Set(headerAllowMethods, *fmtOpt.AllowedMethods)
-	}
-
-	c.ResponseWriter.WriteHeader(http.StatusOK)
+	handler()
 }
