@@ -110,7 +110,7 @@ func setCORS(c *core.Context, fmtOpts map[string]formattedOptions, handler func(
 		}
 
 		c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
-		if wildcard {
+		if !wildcard {
 			c.ResponseWriter.Header().Set("Vary", "Origin")
 		}
 
