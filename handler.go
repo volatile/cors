@@ -57,13 +57,8 @@ func LocalUse(c *core.Context, options map[string]Options, handler func()) {
 	setCORS(c, formatCORS(options), handler)
 }
 
-func formatCORS(opt map[string]Options) (fmtOpt map[string]formattedOptions) {
-	// TODO: Remove this check as there is no other solution to accept credentials for all origins.
-	if opt, ok := opt[AllOrigins]; ok && opt.CredentialsAllowed {
-		panic("cors: sending credentials via CORS is not permitted for wildcarded origins")
-	}
-
-	fmtOpt = make(map[string]formattedOptions, len(opt))
+func formatCORS(opt map[string]Options) map[string]formattedOptions {
+	fmtOpt := make(map[string]formattedOptions, len(opt))
 
 	for origin, item := range opt {
 		result := formattedOptions{}
@@ -86,7 +81,7 @@ func formatCORS(opt map[string]Options) (fmtOpt map[string]formattedOptions) {
 		fmtOpt[origin] = result
 	}
 
-	return
+	return fmtOpt
 }
 
 // setCORS sets the response headers and continues downstream if it's not a preflight request.
@@ -95,24 +90,22 @@ func setCORS(c *core.Context, fmtOpts map[string]formattedOptions, handler func(
 
 	// Use CORS only if an Origin header is defined for the request.
 	if origin != "" {
-		fmtOpt, ok := fmtOpts[origin]
-		wildcard := false
+		fmtOpt, knownOrigin := fmtOpts[origin]
+		allOriginsAllowed := false
 
 		// Unknown origin: check for wildcard.
-		if !ok {
-			fmtOpt, wildcard = fmtOpts[AllOrigins]
+		if !knownOrigin {
+			fmtOpt, allOriginsAllowed = fmtOpts[AllOrigins]
 		}
 
 		// No origin matched and wildcard not accepted: reject the request.
-		if !ok && !wildcard {
+		if !knownOrigin && !allOriginsAllowed {
 			http.Error(c.ResponseWriter, "Invalid CORS request", http.StatusForbidden)
 			return
 		}
 
 		c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
-		if !wildcard {
-			c.ResponseWriter.Header().Set("Vary", "Origin")
-		}
+		c.ResponseWriter.Header().Set("Vary", "Origin")
 
 		// Set credentials header only if they are allowed.
 		if fmtOpt.CredentialsAllowed != nil {
