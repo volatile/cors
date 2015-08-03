@@ -26,8 +26,9 @@ const (
 	headerRequestMethod  = "Access-Control-Request-Method"
 )
 
-// OriginsMap is a list of allowed origins and their respective options.
+// OriginsMap represents the allowed origins with their respective options.
 type OriginsMap map[string]*Options
+
 type formattedOriginsMap map[string]*formattedOptions
 
 // Options represents access control options for an origin.
