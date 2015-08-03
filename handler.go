@@ -3,7 +3,6 @@ package cors
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -75,7 +74,7 @@ func formatCORS(opt map[string]Options) (fmtOpt map[string]formattedOptions) {
 			*result.AllowedMethods = strings.Join(item.AllowedMethods, ", ")
 		}
 		if item.CredentialsAllowed {
-			*result.CredentialsAllowed = strconv.FormatBool(item.CredentialsAllowed)
+			*result.CredentialsAllowed = "true"
 		}
 		if len(item.ExposedHeaders) > 0 {
 			*result.ExposedHeaders = strings.Join(item.ExposedHeaders, ", ")
@@ -111,13 +110,12 @@ func setCORS(c *core.Context, fmtOpts map[string]formattedOptions, handler func(
 		}
 
 		c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
-
 		if wildcard {
 			c.ResponseWriter.Header().Set("Vary", "Origin")
 		}
 
 		// Set credentials header only if they are allowed.
-		if fmtOpt.CredentialsAllowed != nil && *fmtOpt.CredentialsAllowed == "true" {
+		if fmtOpt.CredentialsAllowed != nil {
 			c.ResponseWriter.Header().Set(headerAllowCredentials, *fmtOpt.CredentialsAllowed)
 		}
 
