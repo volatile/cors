@@ -29,7 +29,7 @@ const (
 // OriginsMap represents the allowed origins with their respective options.
 type OriginsMap map[string]*Options
 
-type formattedOriginsMap map[string]*formattedOptions
+type formattedOriginsMap map[string]formattedOptions
 
 // Options represents access control options for an origin.
 type Options struct {
@@ -76,7 +76,7 @@ func formatCORS(origins OriginsMap) formattedOriginsMap {
 			opts = new(Options)
 		}
 
-		fmtOpts := new(formattedOptions)
+		fmtOpts := formattedOptions{}
 
 		if len(opts.AllowedHeaders) > 0 {
 			*fmtOpts.AllowedHeaders = strings.Join(opts.AllowedHeaders, ", ")
