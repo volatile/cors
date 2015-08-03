@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// AllOrigins contains the wildcard symbol.
+	// AllOrigins is the wildcard.
 	AllOrigins = "*"
 
 	// Response headers
