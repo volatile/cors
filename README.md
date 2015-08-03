@@ -18,13 +18,16 @@ $ go get -u github.com/volatile/cors
 
 ## Usage
 
-When using CORS (globally or locally), there is always a parameter of type `*cors.Options`.  
-If you set `nil` for this parameter, the default configuration is used: it allows all headers, methods and origins.  
-If you need a more control, give custom options with `&cors.Options{}`.
+When using CORS (globally or locally), there is always a parameter of type `cors.OriginsMap`.  
+It can contain a map of allowed origins and their specific options.  
+
+- Use `nil` as `cors.OriginsMap` to allow all headers, methods and origins.  
+
+- Use `nil` as origin's `*Options` to allow all headers and methods for this origin.
 
 ### Global
 
-`cors.Use(*cors.Options)` sets a global CORS configuration for all the handlers.
+`cors.Use(cors.OriginsMap)` sets a global CORS configuration for all the handlers.
 
 ```Go
 package main
@@ -49,7 +52,7 @@ func main() {
 
 ### Local
 
-`cors.LocalUse(*core.Context, *cors.Options, func())` allows to set CORS locally, for a single handler.  
+`cors.LocalUse(*core.Context, cors.OriginsMap, func())` allows to set CORS locally, for a single handler.  
 The global CORS options (if used) are overwritten in this situation.
 
 The last `func()` parameter is called after the CORS headers are set, but only if it's not a [preflight request](http://www.w3.org/TR/cors/#resource-preflight-requests).
@@ -76,10 +79,10 @@ func main() {
 		opt := &cors.Options{
 			AllowedHeaders:     []string{"X-Client-Header-Example", "X-Another-Client-Header-Example"},
 			AllowedMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-			AllowedOrigins:     []string{"http://example.com", "http://example.com"},
+			AllowedOrigins:     []string{"http://example.com", "http://another-example.com"},
 			CredentialsAllowed: true,
 			ExposedHeaders:     []string{"X-Header-Example", "X-Another-Header-Example"},
-			MaxAge:             365 * 24 * time.Hour,
+			MaxAge:             1 * time.Hour,
 		}
 
 		cors.LocalUse(c, opt, func() {

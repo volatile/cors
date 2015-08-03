@@ -63,7 +63,7 @@ func LocalUse(c *core.Context, origins OriginsMap, handler func()) {
 
 func formatCORS(origins OriginsMap) formattedOriginsMap {
 	// If no origins map is set, all are allowed.
-	if origins == nil {
+	if origins == nil || len(origins) == 0 {
 		origins = OriginsMap{AllOrigins: nil}
 	}
 
@@ -136,7 +136,7 @@ func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
 		}
 
 		// OPTIONS method is used for a preflight request.
-		// In this case, other CORS headers still need to be set before sending all of them, without any other work.
+		// In this case, other CORS headers still need to be set before sending all of them, without any other work downstream.
 		if c.Request.Method == "OPTIONS" {
 			// If no allowed headers are set, all are allowed.
 			if fmtOpts.AllowedHeaders == nil {
