@@ -25,12 +25,14 @@ It can contain a map of allowed origins and their specific options.
   ```Go
   cors.Use(nil)
   ```
+
 - Use `nil` as origin's `*Options` to allow all headers and methods for this origin.
   ```Go
   cors.Use(cors.OriginsMap{
   	"example.com": nil,
   })
   ```
+
 - Use `cors.AllOrigins` as an `cors.OriginsMap` key to set options for all origins.
   ```Go
   cors.Use(cors.OriginsMap{
