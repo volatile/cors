@@ -5,19 +5,41 @@ It enables Cross-Origin Resource Sharing support.
 Make sure to include the handler above any other handler that alter the response body.
 
 Documentation about CORS:
+
 - http://www.w3.org/TR/cors/
+
 - https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+
 - http://www.html5rocks.com/en/tutorials/cors/
 
 Usage
 
-When using CORS (globally or locally), there is always a parameter of type "*cors.Options".
-If you set "nil" for this parameter, the default configuration is used: it allows all headers, methods and origins.
-If you need a more control, give custom options with "&cors.Options{}".
+When using CORS (globally or locally), there is always a parameter of type cors.OriginsMap.
+It can contain a map of allowed origins and their specific options.
 
-Global usage
+- Use nil as cors.OriginsMap to allow all headers, methods and origins.
 
-cors.Use(*cors.Options) sets a global CORS configuration for all the handlers.
+	cors.Use(nil)
+
+- Use nil as origin's *Options to allow all headers and methods for this origin.
+
+	cors.Use(cors.OriginsMap{
+		"example.com": nil,
+	})
+
+- Use cors.AllOrigins as an cors.OriginsMap key to set options for all origins.
+
+	cors.Use(cors.OriginsMap{
+		"example.com": nil, // All is allowed for this origin.
+		cors.AllOrigins: &cors.Options{
+			AllowedMethods: []string{"GET"}, // Only the GET method is allowed for the others.
+		},
+	})
+
+
+Global
+
+cors.Use(cors.OriginsMap) sets a global CORS configuration for all the handlers downstream.
 
 	package main
 
@@ -31,30 +53,42 @@ cors.Use(*cors.Options) sets a global CORS configuration for all the handlers.
 	func main() {
 		cors.Use(nil)
 
+		// All is allowed for the "/" path.
 		core.Use(func(c *core.Context) {
-			fmt.Fprint(c.ResponseWriter, "Hello, World!")
+			if c.Request.URL.Path == "/" {
+				fmt.Fprint(c.ResponseWriter, "Hello, World!")
+			}
+		})
+
+		// The previous CORS options are overwritten.
+		cors.Use(cors.OriginsMap{
+			cors.AllOrigins: &cors.Options{
+				AllowedMethods: []string{"GET"},
+			},
+		})
+
+		// Only the GET method is allowed for this handler.
+		core.Use(func(c *core.Context) {
+			fmt.Fprint(c.ResponseWriter, "Read only")
 		})
 
 		core.Run()
 	}
 
-Local usage
+Local
 
-cors.LocalUse(*core.Context, *cors.Options, func()) allows to set CORS locally, for a single handler.
-The global CORS options are overwritten in this situation.
+cors.LocalUse(*core.Context, cors.OriginsMap, func()) can be used to set CORS locally, for a single handler.
+The global CORS options (if used) are overwritten in this situation.
 
-The last func() parameter is called after the CORS headers are set, but only if it's not a [preflight request](http://www.w3.org/TR/cors/#resource-preflight-requests).
+The last func() parameter is called after the CORS headers are set, but only if it's not a preflight request (http://www.w3.org/TR/cors/#resource-preflight-requests).
 
 	package main
 
 	import (
 		"fmt"
-		"time"
 
 		"github.com/volatile/core"
 		"github.com/volatile/cors"
-		"github.com/volatile/response"
-		"github.com/volatile/route"
 	)
 
 	func main() {
@@ -62,24 +96,20 @@ The last func() parameter is called after the CORS headers are set, but only if 
 		cors.Use(nil)
 
 		// Local use for the "/hook" path.
-		route.Get("^/hook$", func(c *core.Context) {
-			opt := &cors.Options{
-				AllowedHeaders:     []string{"X-Client-Header-Example", "X-Another-Client-Header-Example"},
-				AllowedMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-				AllowedOrigins:     []string{"http://example.com", "http://example.com"},
-				CredentialsAllowed: true,
-				ExposedHeaders:     []string{"X-Header-Example", "X-Another-Header-Example"},
-				MaxAge:             365 * 24 * time.Hour,
+		core.Use(func(c *core.Context) {
+			if c.Request.URL.Path == "/hook" {
+				cors.LocalUse(c, cors.OriginsMap{
+					cors.AllOrigins: &cors.Options{AllowedMethods: []string{"GET"}},
+				}, func() {
+					response.Status(c, http.StatusOK)
+				})
 			}
-
-			cors.LocalUse(c, opt, func() {
-				response.Status(c, http.StatusOK)
-			})
+			c.Next()
 		})
 
-		// No local CORS are set: global CORS options are used.
+		// No local CORS are set, so the global CORS options are used.
 		core.Use(func(c *core.Context) {
-			response.String(c, "Hello, World!")
+			fmt.Fprint(c.ResponseWriter, "Hello, World!")
 		})
 
 		core.Run()
