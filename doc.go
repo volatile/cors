@@ -17,7 +17,7 @@ Usage
 When using CORS (globally or locally), there is always a parameter of type OriginsMap.
 It can contain a map of allowed origins and their specific options.
 
-Use nil as cors.OriginsMap to allow all headers, methods and origins.
+Use nil as OriginsMap to allow all headers, methods and origins.
 
 	cors.Use(nil)
 
@@ -27,7 +27,7 @@ Use nil as origin's *Options to allow all headers and methods for this origin.
 		"example.com": nil,
 	})
 
-Use cors.AllOrigins as an cors.OriginsMap key to set options for all origins.
+Use AllOrigins as an OriginsMap key to set options for all origins.
 
 	cors.Use(cors.OriginsMap{
 		"example.com": nil, // All is allowed for this origin.
