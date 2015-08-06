@@ -14,20 +14,20 @@ Documentation about CORS:
 
 Usage
 
-When using CORS (globally or locally), there is always a parameter of type cors.OriginsMap.
+When using CORS (globally or locally), there is always a parameter of type OriginsMap.
 It can contain a map of allowed origins and their specific options.
 
-- Use nil as cors.OriginsMap to allow all headers, methods and origins.
+Use nil as cors.OriginsMap to allow all headers, methods and origins.
 
 	cors.Use(nil)
 
-- Use nil as origin's *Options to allow all headers and methods for this origin.
+Use nil as origin's *Options to allow all headers and methods for this origin.
 
 	cors.Use(cors.OriginsMap{
 		"example.com": nil,
 	})
 
-- Use cors.AllOrigins as an cors.OriginsMap key to set options for all origins.
+Use cors.AllOrigins as an cors.OriginsMap key to set options for all origins.
 
 	cors.Use(cors.OriginsMap{
 		"example.com": nil, // All is allowed for this origin.
@@ -39,7 +39,7 @@ It can contain a map of allowed origins and their specific options.
 
 Global
 
-cors.Use(cors.OriginsMap) sets a global CORS configuration for all the handlers downstream.
+Use sets a global CORS configuration for all the handlers downstream.
 
 	package main
 
@@ -77,18 +77,20 @@ cors.Use(cors.OriginsMap) sets a global CORS configuration for all the handlers 
 
 Local
 
-cors.LocalUse(*core.Context, cors.OriginsMap, func()) can be used to set CORS locally, for a single handler.
+LocalUse can be used to set CORS locally, for a single handler.
 The global CORS options (if used) are overwritten in this situation.
 
-The last func() parameter is called after the CORS headers are set, but only if it's not a preflight request (http://www.w3.org/TR/cors/#resource-preflight-requests).
+The last func parameter is called after the CORS headers are set, but only if it's not a preflight request (http://www.w3.org/TR/cors/#resource-preflight-requests).
 
 	package main
 
 	import (
 		"fmt"
+		"net/http"
 
 		"github.com/volatile/core"
 		"github.com/volatile/cors"
+		"github.com/volatile/response"
 	)
 
 	func main() {
