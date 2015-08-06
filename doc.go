@@ -1,5 +1,5 @@
 /*
-Package cors is a handler for the Core.
+Package cors is a handler for the Core (https://github.com/volatile/core).
 It enables Cross-Origin Resource Sharing support.
 
 Make sure to include the handler above any other handler that alter the response body.
