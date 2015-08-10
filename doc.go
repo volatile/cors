@@ -12,6 +12,12 @@ Documentation about CORS:
 
 - http://www.html5rocks.com/en/tutorials/cors/
 
+Installation
+
+In the terminal:
+
+	$ go get github.com/volatile/cors
+
 Usage
 
 When using CORS (globally or locally), there is always a parameter of type OriginsMap.
