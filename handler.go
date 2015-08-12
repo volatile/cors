@@ -48,7 +48,7 @@ type formattedOptions struct {
 	MaxAge             *string
 }
 
-// Use adds a handler that sets CORS with the provided options for all dowstream requests.
+// Use adds a handler that sets CORS with the provided options for all handlers dowstream.
 func Use(origins OriginsMap) {
 	fmtOrigins := formatCORS(origins)
 	core.Use(func(c *core.Context) {
@@ -109,6 +109,7 @@ func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
 		handler()
 		return
 	}
+
 	fmtOpts, knownOrigin := fmtOrigins[origin]
 	allOriginsAllowed := false
 
