@@ -12,24 +12,10 @@ import (
 const (
 	// AllOrigins is the wildcard.
 	AllOrigins = "*"
-
-	// Response headers
-	headerAllowCredentials = "Access-Control-Allow-Credentials"
-	headerAllowHeaders     = "Access-Control-Allow-Headers"
-	headerAllowMethods     = "Access-Control-Allow-Methods"
-	headerAllowOrigin      = "Access-Control-Allow-Origin"
-	headerExposeHeaders    = "Access-Control-Expose-Headers"
-	headerMaxAge           = "Access-Control-Max-Age"
-
-	// Request headers
-	headerRequestHeaders = "Access-Control-Request-Headers"
-	headerRequestMethod  = "Access-Control-Request-Method"
 )
 
 // OriginsMap represents the allowed origins with their respective options.
 type OriginsMap map[string]*Options
-
-type formattedOriginsMap map[string]formattedOptions
 
 // Options represents access control options for an origin.
 type Options struct {
@@ -40,68 +26,21 @@ type Options struct {
 	MaxAge             time.Duration // MaxAge indicates how long the results of a preflight request can be cached.
 }
 
-type formattedOptions struct {
-	AllowedHeaders     *string
-	AllowedMethods     *string
-	CredentialsAllowed *string
-	ExposedHeaders     *string
-	MaxAge             *string
-}
-
 // Use adds a handler that sets CORS with the provided options for all handlers dowstream.
-func Use(origins OriginsMap) {
-	fmtOrigins := formatCORS(origins)
+func Use(origins *OriginsMap) {
 	core.Use(func(c *core.Context) {
-		setCORS(c, fmtOrigins, c.Next)
+		setCORS(c, origins, c.Next)
 	})
 }
 
 // LocalUse sets CORS with the provided options locally, for a single handler.
 // The global options (if used) are overwritten in this situation.
-func LocalUse(c *core.Context, origins OriginsMap, handler func()) {
-	setCORS(c, formatCORS(origins), handler)
-}
-
-func formatCORS(origins OriginsMap) formattedOriginsMap {
-	// If no origins map is set, all are allowed.
-	if origins == nil || len(origins) == 0 {
-		origins = OriginsMap{AllOrigins: nil}
-	}
-
-	fmtOrigins := make(formattedOriginsMap)
-
-	for origin, opts := range origins {
-		// If no options are set, all are allowed.
-		if opts == nil {
-			opts = new(Options)
-		}
-
-		fmtOpts := formattedOptions{}
-
-		if len(opts.AllowedHeaders) > 0 {
-			*fmtOpts.AllowedHeaders = strings.Join(opts.AllowedHeaders, ", ")
-		}
-		if len(opts.AllowedMethods) > 0 {
-			*fmtOpts.AllowedMethods = strings.Join(opts.AllowedMethods, ", ")
-		}
-		if opts.CredentialsAllowed {
-			*fmtOpts.CredentialsAllowed = "true"
-		}
-		if len(opts.ExposedHeaders) > 0 {
-			*fmtOpts.ExposedHeaders = strings.Join(opts.ExposedHeaders, ", ")
-		}
-		if opts.MaxAge.Seconds() != 0 {
-			*fmtOpts.MaxAge = fmt.Sprintf("%.f", opts.MaxAge.Seconds())
-		}
-
-		fmtOrigins[origin] = fmtOpts
-	}
-
-	return fmtOrigins
+func LocalUse(c *core.Context, origins *OriginsMap, handler func()) {
+	setCORS(c, origins, handler)
 }
 
 // setCORS sets the response headers and continues downstream if it's not a preflight request.
-func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
+func setCORS(c *core.Context, origins *OriginsMap, handler func()) {
 	origin := c.Request.Header.Get("Origin")
 
 	// Don't use CORS without an origin.
@@ -110,12 +49,16 @@ func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
 		return
 	}
 
-	fmtOpts, knownOrigin := fmtOrigins[origin]
+	if origins == nil || len(*origins) == 0 {
+		origins = &OriginsMap{AllOrigins: nil}
+	}
+
+	opts, knownOrigin := (*origins)[origin]
 	allOriginsAllowed := false
 
 	// If origin is unknown, see for wildcard.
 	if !knownOrigin {
-		fmtOpts, allOriginsAllowed = fmtOrigins[AllOrigins]
+		opts, allOriginsAllowed = (*origins)[AllOrigins]
 	}
 
 	// If origin is unknown and wildcard isn't set, reject the request.
@@ -124,20 +67,20 @@ func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
 		return
 	}
 
-	c.ResponseWriter.Header().Set(headerAllowOrigin, origin)
+	c.ResponseWriter.Header().Set("Access-Control-Allow-Origin", origin)
 	c.ResponseWriter.Header().Set("Vary", "Origin")
 
 	// Set credentials header only if they are allowed.
-	if fmtOpts.CredentialsAllowed != nil {
-		c.ResponseWriter.Header().Set(headerAllowCredentials, *fmtOpts.CredentialsAllowed)
+	if opts.CredentialsAllowed {
+		c.ResponseWriter.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
-	if fmtOpts.ExposedHeaders != nil {
-		c.ResponseWriter.Header().Set(headerExposeHeaders, *fmtOpts.ExposedHeaders)
+	if len(opts.ExposedHeaders) > 0 {
+		c.ResponseWriter.Header().Set("Access-Control-Expose-Headers", strings.Join(opts.ExposedHeaders, ", "))
 	}
 
-	if fmtOpts.MaxAge != nil {
-		c.ResponseWriter.Header().Set(headerMaxAge, *fmtOpts.MaxAge)
+	if opts.MaxAge != 0 {
+		c.ResponseWriter.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%.f", opts.MaxAge.Seconds()))
 	}
 
 	// OPTIONS method is used for a preflight request.
@@ -148,17 +91,17 @@ func setCORS(c *core.Context, fmtOrigins formattedOriginsMap, handler func()) {
 	}
 
 	// If no allowed headers are set, all are allowed.
-	if fmtOpts.AllowedHeaders == nil {
-		c.ResponseWriter.Header().Set(headerAllowHeaders, c.Request.Header.Get(headerRequestHeaders))
+	if len(opts.AllowedHeaders) > 0 {
+		c.ResponseWriter.Header().Set("Access-Control-Allow-Headers", strings.Join(opts.AllowedHeaders, ", "))
 	} else {
-		c.ResponseWriter.Header().Set(headerAllowHeaders, *fmtOpts.AllowedHeaders)
+		c.ResponseWriter.Header().Set("Access-Control-Allow-Headers", c.Request.Header.Get("Access-Control-Request-Headers"))
 	}
 
 	// If no allowed methods are set, all are allowed.
-	if fmtOpts.AllowedMethods == nil {
-		c.ResponseWriter.Header().Set(headerAllowMethods, c.Request.Header.Get(headerRequestMethod))
+	if len(opts.AllowedHeaders) > 0 {
+		c.ResponseWriter.Header().Set("Access-Control-Allow-Methods", strings.Join(opts.AllowedMethods, ", "))
 	} else {
-		c.ResponseWriter.Header().Set(headerAllowMethods, *fmtOpts.AllowedMethods)
+		c.ResponseWriter.Header().Set("Access-Control-Allow-Methods", c.Request.Header.Get("Access-Control-Request-Method"))
 	}
 
 	// It was a preflight request so we just send the headers.

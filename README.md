@@ -23,14 +23,14 @@ It can contain a map of allowed origins and their specific options.
 
 - Use `nil` as origin's [`*Options`](https://godoc.org/github.com/volatile/cors#Options) to allow all headers and methods for this origin.
   ```Go
-  cors.Use(cors.OriginsMap{
+  cors.Use(&cors.OriginsMap{
   	"example.com": nil,
   })
   ```
 
 - Use [`AllOrigins`](https://godoc.org/github.com/volatile/cors#AllOrigins) as an [`OriginsMap`](https://godoc.org/github.com/volatile/cors#OriginsMap) key to set options for all origins.
   ```Go
-  cors.Use(cors.OriginsMap{
+  cors.Use(&cors.OriginsMap{
   	"example.com": nil, // All is allowed for this origin.
   	cors.AllOrigins: &cors.Options{
   		AllowedMethods: []string{"GET"}, // Only the GET method is allowed for the others.
@@ -59,11 +59,13 @@ func main() {
 	core.Use(func(c *core.Context) {
 		if c.Request.URL.Path == "/" {
 			fmt.Fprint(c.ResponseWriter, "Hello, World!")
+		} else {
+			c.Next()
 		}
 	})
 
 	// The previous CORS options are overwritten.
-	cors.Use(cors.OriginsMap{
+	cors.Use(&cors.OriginsMap{
 		cors.AllOrigins: &cors.Options{
 			AllowedMethods: []string{"GET"},
 		},
@@ -104,13 +106,14 @@ func main() {
 	// Local use for the "/hook" path.
 	core.Use(func(c *core.Context) {
 		if c.Request.URL.Path == "/hook" {
-			cors.LocalUse(c, cors.OriginsMap{
+			cors.LocalUse(c, &cors.OriginsMap{
 				cors.AllOrigins: &cors.Options{AllowedMethods: []string{"GET"}},
 			}, func() {
 				response.Status(c, http.StatusOK)
 			})
+		} else {
+			c.Next()
 		}
-		c.Next()
 	})
 
 	// No local CORS are set, so the global CORS options are used.

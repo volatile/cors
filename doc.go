@@ -21,13 +21,13 @@ Use nil as OriginsMap to allow all headers, methods and origins.
 
 Use nil as origin's *Options to allow all headers and methods for this origin.
 
-	cors.Use(cors.OriginsMap{
+	cors.Use(&cors.OriginsMap{
 		"example.com": nil,
 	})
 
 Use AllOrigins as an OriginsMap key to set options for all origins.
 
-	cors.Use(cors.OriginsMap{
+	cors.Use(&cors.OriginsMap{
 		"example.com": nil, // All is allowed for this origin.
 		cors.AllOrigins: &cors.Options{
 			AllowedMethods: []string{"GET"}, // Only the GET method is allowed for the others.
@@ -55,11 +55,13 @@ Use sets a global CORS configuration for all the handlers downstream.
 		core.Use(func(c *core.Context) {
 			if c.Request.URL.Path == "/" {
 				fmt.Fprint(c.ResponseWriter, "Hello, World!")
+			} else {
+				c.Next()
 			}
 		})
 
 		// The previous CORS options are overwritten.
-		cors.Use(cors.OriginsMap{
+		cors.Use(&cors.OriginsMap{
 			cors.AllOrigins: &cors.Options{
 				AllowedMethods: []string{"GET"},
 			},
@@ -98,13 +100,14 @@ The last func parameter is called after the CORS headers are set, but only if it
 		// Local use for the "/hook" path.
 		core.Use(func(c *core.Context) {
 			if c.Request.URL.Path == "/hook" {
-				cors.LocalUse(c, cors.OriginsMap{
+				cors.LocalUse(c, &cors.OriginsMap{
 					cors.AllOrigins: &cors.Options{AllowedMethods: []string{"GET"}},
 				}, func() {
 					response.Status(c, http.StatusOK)
 				})
+			} else {
+				c.Next()
 			}
-			c.Next()
 		})
 
 		// No local CORS are set, so the global CORS options are used.
