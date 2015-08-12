@@ -5,11 +5,6 @@ It enables *Cross-Origin Resource Sharing* support.
 
 Make sure to include the handler above any other handler that alter the response body.
 
-Documentation about *CORS*:
-- [W3C official specification](http://www.w3.org/TR/cors/)
-- [Mozilla Developer Network](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
-- [HTML5 Rocks](http://www.html5rocks.com/en/tutorials/cors/)
-
 ## Installation
 
 ```Shell
@@ -126,3 +121,8 @@ func main() {
 	core.Run()
 }
 ```
+
+## Documentation
+- [W3C official specification](http://www.w3.org/TR/cors/)
+- [Mozilla Developer Network](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
+- [HTML5 Rocks](http://www.html5rocks.com/en/tutorials/cors/)

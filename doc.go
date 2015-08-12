@@ -4,14 +4,6 @@ It enables Cross-Origin Resource Sharing support.
 
 Make sure to include the handler above any other handler that alter the response body.
 
-Documentation about CORS:
-
-- http://www.w3.org/TR/cors/
-
-- https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
-
-- http://www.html5rocks.com/en/tutorials/cors/
-
 Installation
 
 In the terminal:
@@ -122,5 +114,13 @@ The last func parameter is called after the CORS headers are set, but only if it
 
 		core.Run()
 	}
+
+Documentation
+
+- http://www.w3.org/TR/cors/
+
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+
+- http://www.html5rocks.com/en/tutorials/cors/
 */
 package cors
