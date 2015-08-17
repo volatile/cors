@@ -54,9 +54,9 @@ func setCORS(c *core.Context, origins *OriginsMap, handler func()) {
 	}
 
 	opts, knownOrigin := (*origins)[origin]
-	allOriginsAllowed := false
 
 	// If origin is unknown, see for wildcard.
+	var allOriginsAllowed bool
 	if !knownOrigin {
 		opts, allOriginsAllowed = (*origins)[AllOrigins]
 	}
@@ -71,15 +71,15 @@ func setCORS(c *core.Context, origins *OriginsMap, handler func()) {
 	c.ResponseWriter.Header().Set("Vary", "Origin")
 
 	// Set credentials header only if they are allowed.
-	if opts.CredentialsAllowed {
+	if opts != nil && opts.CredentialsAllowed {
 		c.ResponseWriter.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
-	if len(opts.ExposedHeaders) > 0 {
+	if opts != nil && len(opts.ExposedHeaders) > 0 {
 		c.ResponseWriter.Header().Set("Access-Control-Expose-Headers", strings.Join(opts.ExposedHeaders, ", "))
 	}
 
-	if opts.MaxAge != 0 {
+	if opts != nil && opts.MaxAge != 0 {
 		c.ResponseWriter.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%.f", opts.MaxAge.Seconds()))
 	}
 
@@ -91,14 +91,14 @@ func setCORS(c *core.Context, origins *OriginsMap, handler func()) {
 	}
 
 	// If no allowed headers are set, all are allowed.
-	if len(opts.AllowedHeaders) > 0 {
+	if opts != nil && len(opts.AllowedHeaders) > 0 {
 		c.ResponseWriter.Header().Set("Access-Control-Allow-Headers", strings.Join(opts.AllowedHeaders, ", "))
 	} else {
 		c.ResponseWriter.Header().Set("Access-Control-Allow-Headers", c.Request.Header.Get("Access-Control-Request-Headers"))
 	}
 
 	// If no allowed methods are set, all are allowed.
-	if len(opts.AllowedHeaders) > 0 {
+	if opts != nil && len(opts.AllowedHeaders) > 0 {
 		c.ResponseWriter.Header().Set("Access-Control-Allow-Methods", strings.Join(opts.AllowedMethods, ", "))
 	} else {
 		c.ResponseWriter.Header().Set("Access-Control-Allow-Methods", c.Request.Header.Get("Access-Control-Request-Method"))
