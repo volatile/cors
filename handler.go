@@ -9,10 +9,8 @@ import (
 	"github.com/volatile/core"
 )
 
-const (
-	// AllOrigins is the wildcard.
-	AllOrigins = "*"
-)
+// AllOrigins is the wildcard.
+const AllOrigins = "*"
 
 // OriginsMap represents the allowed origins with their respective options.
 type OriginsMap map[string]*Options
