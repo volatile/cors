@@ -61,7 +61,7 @@ func setCORS(c *core.Context, origins *OriginsMap, handler func()) {
 
 	// If origin is unknown and wildcard isn't set, reject the request.
 	if !knownOrigin && !allOriginsAllowed {
-		http.Error(c.ResponseWriter, "Invalid CORS request", http.StatusForbidden)
+		http.Error(c.ResponseWriter, "Forbidden CORS request", http.StatusForbidden)
 		return
 	}
 
