@@ -24,7 +24,7 @@ type Options struct {
 	MaxAge             time.Duration // MaxAge indicates how long the results of a preflight request can be cached.
 }
 
-// Use sets a global CORS configuration for all the handlers downstream.
+// Use adds a handler to the default handlers stack.
 func Use(origins *OriginsMap) {
 	core.Use(func(c *core.Context) {
 		setCORS(c, origins, c.Next)
