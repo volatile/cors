@@ -24,15 +24,15 @@ type Options struct {
 	MaxAge             time.Duration // MaxAge indicates how long the results of a preflight request can be cached.
 }
 
-// Use adds a handler that sets CORS with the provided options for all handlers dowstream.
+// Use sets a global CORS configuration for all the handlers downstream.
 func Use(origins *OriginsMap) {
 	core.Use(func(c *core.Context) {
 		setCORS(c, origins, c.Next)
 	})
 }
 
-// LocalUse sets CORS with the provided options locally, for a single handler.
-// The global options (if used) are overwritten in this situation.
+// LocalUse sets CORS locally, inside a single handler.
+// This setting takes precedence over he global CORS options (if set).
 func LocalUse(c *core.Context, origins *OriginsMap, handler func()) {
 	setCORS(c, origins, handler)
 }
