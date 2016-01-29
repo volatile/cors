@@ -25,6 +25,7 @@ type Options struct {
 }
 
 // Use adds a handler to the default handlers stack.
+// It sets a global CORS configuration for all the handlers downstream.
 func Use(origins *OriginsMap) {
 	core.Use(func(c *core.Context) {
 		setCORS(c, origins, c.Next)
