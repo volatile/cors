@@ -30,28 +30,28 @@ Global usage
 
 Use sets a global CORS configuration for all the handlers downstream:
 
-		cors.Use(nil)
+	cors.Use(nil)
 
-		// All is allowed for the root path.
-		core.Use(func(c *core.Context) {
-			if c.Request.URL.Path == "/" {
-				fmt.Fprint(c.ResponseWriter, "Hello, World!")
-			} else {
-				c.Next()
-			}
-		})
+	// All is allowed for the root path.
+	core.Use(func(c *core.Context) {
+		if c.Request.URL.Path == "/" {
+			fmt.Fprint(c.ResponseWriter, "Hello, World!")
+		} else {
+			c.Next()
+		}
+	})
 
-		// Previous CORS options are overwritten.
-		cors.Use(&cors.OriginsMap{
-			cors.AllOrigins: &cors.Options{
-				AllowedMethods: []string{"GET"},
-			},
-		})
+	// Previous CORS options are overwritten.
+	cors.Use(&cors.OriginsMap{
+		cors.AllOrigins: &cors.Options{
+			AllowedMethods: []string{"GET"},
+		},
+	})
 
-		// Only the GET method is allowed for this handler.
-		core.Use(func(c *core.Context) {
-			fmt.Fprint(c.ResponseWriter, "Read only")
-		})
+	// Only the GET method is allowed for this handler.
+	core.Use(func(c *core.Context) {
+		fmt.Fprint(c.ResponseWriter, "Read only")
+	})
 
 Make sure to include the handler above any other handler that alter the response body.
 
@@ -60,20 +60,20 @@ Local usage
 LocalUse sets CORS locally, inside a single handler.
 This setting takes precedence over he global CORS options (if set).
 
-		core.Use(func(c *core.Context) {
-			cors.LocalUse(c, &cors.OriginsMap{
-				cors.AllOrigins: &cors.Options{AllowedMethods: []string{"GET"}},
-			}, func() {
-				response.Status(c, http.StatusOK)
-			})
+	core.Use(func(c *core.Context) {
+		cors.LocalUse(c, &cors.OriginsMap{
+			cors.AllOrigins: &cors.Options{AllowedMethods: []string{"GET"}},
+		}, func() {
+			response.Status(c, http.StatusOK)
 		})
+	})
 
 Documentation
 
-W3C — http://www.w3.org/TR/cors/
+For more information:
 
-Mozilla — https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
-
-HTML5 Rocks — http://www.html5rocks.com/en/tutorials/cors/
+	W3C		http://www.w3.org/TR/cors/
+	Mozilla		https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+	HTML5 Rocks	http://www.html5rocks.com/en/tutorials/cors/
 */
 package cors
